@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { signIn } from "next-auth/react";
@@ -13,7 +13,7 @@ const STEPS = [
   { id: 4, title: "Review" }
 ];
 
-export default function OnboardingWizard() {
+function OnboardingWizardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email") || "";
@@ -311,5 +311,13 @@ export default function OnboardingWizard() {
         }
       `}} />
     </div>
+  );
+}
+
+export default function OnboardingWizard() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center">Loading onboarding...</div>}>
+      <OnboardingWizardContent />
+    </Suspense>
   );
 }

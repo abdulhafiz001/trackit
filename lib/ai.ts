@@ -6,7 +6,7 @@ const token = process.env.GITHUB_TOKEN || "";
 const modelName = process.env.GITHUB_MODEL_NAME || "gpt-4o-mini";
 
 // Create the client
-const client = new ModelClient(endpoint, new AzureKeyCredential(token));
+const client = ModelClient(endpoint, new AzureKeyCredential(token));
 
 export async function generateLogEntry(
   recentEntries: string[],
@@ -43,8 +43,13 @@ Today is ${currentDayName}, ${currentDate}. Suggest a realistic and plausible sh
   });
 
   if (response.status !== "200") {
-    throw new Error(`Failed to generate entry: ${response.body.error?.message || response.status}`);
+    const errorBody = response.body as { error?: { message?: string } };
+    throw new Error(`Failed to generate entry: ${errorBody.error?.message || response.status}`);
   }
 
-  return response.body.choices[0].message.content;
+  const successBody = response.body as {
+    choices: Array<{ message: { content: string } }>;
+  };
+
+  return successBody.choices[0]?.message.content || "";
 }
