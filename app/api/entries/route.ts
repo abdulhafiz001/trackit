@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import dbConnect from '@/lib/mongodb';
 import LogEntry from '@/lib/models/LogEntry';
-import { startOfDay } from 'date-fns';
+import { parseISO, startOfDay } from 'date-fns';
 
 export async function GET(request: Request) {
   try {
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
     }
 
     await dbConnect();
-    const targetDate = startOfDay(new Date(date));
+    const targetDate = startOfDay(parseISO(date));
     
     // Create or Update (upsert)
     const entry = await LogEntry.findOneAndUpdate(

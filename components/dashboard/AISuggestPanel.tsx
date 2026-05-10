@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Sparkles, Check, X } from "lucide-react";
+import { format } from "date-fns";
 
 interface AISuggestPanelProps {
   date: Date;
@@ -23,7 +24,7 @@ export default function AISuggestPanel({ date, onAccept, onDismiss }: AISuggestP
         const res = await fetch("/api/ai/suggest", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ currentDate: date.toISOString() }),
+          body: JSON.stringify({ currentDate: format(date, "yyyy-MM-dd") }),
         });
         const data = await res.json();
         

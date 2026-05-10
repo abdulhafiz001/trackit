@@ -4,7 +4,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import dbConnect from '@/lib/mongodb';
 import LogEntry from '@/lib/models/LogEntry';
 import { generateLogEntry } from '@/lib/ai';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 
 export async function POST(request: Request) {
   try {
@@ -26,13 +26,13 @@ export async function POST(request: Request) {
     const recentEntries = await LogEntry.find({ 
       userId: (session.user as any).id,
       status: 'saved',
-      date: { $lt: new Date(currentDate) }
+      date: { $lt: parseISO(currentDate) }
     })
     .sort({ date: -1 })
     .limit(5);
 
     const tasksList = recentEntries.map(e => e.tasks);
-    const dateObj = new Date(currentDate);
+    const dateObj = parseISO(currentDate);
     const currentDayName = format(dateObj, 'EEEE');
     const formattedDate = format(dateObj, 'MMMM d, yyyy');
 

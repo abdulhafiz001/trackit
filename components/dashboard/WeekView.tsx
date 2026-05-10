@@ -105,7 +105,7 @@ export default function WeekView({ weekNumber, isCurrentWeek = false }: { weekNu
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          date: selectedDay.date.toISOString(),
+          date: format(selectedDay.date, "yyyy-MM-dd"),
           weekNumber,
           dayOfWeek: selectedDay.name,
           tasks: taskText,
