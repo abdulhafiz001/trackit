@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { format, addDays, startOfWeek, isSameDay, startOfDay } from "date-fns";
 import { Calendar as CalendarIcon, CheckCircle, Clock, Search, Edit2, Sparkles, X, ChevronRight } from "lucide-react";
 import AISuggestPanel from "@/components/dashboard/AISuggestPanel";
@@ -24,10 +24,11 @@ export default function WeekView({ weekNumber, isCurrentWeek = false }: { weekNu
   // (weekNumber - 1) * 7 days after the startDate's Monday
   const baseMonday = startOfWeek(startDate, { weekStartsOn: 1 });
   const weekStart = addDays(baseMonday, (weekNumber - 1) * 7);
+  const weekStartTime = weekStart.getTime();
 
   // Fetch entries for this week
   const { data, mutate, isLoading } = useSWR(`/api/entries?weekNumber=${weekNumber}`, fetcher);
-  const entries = data?.entries || [];
+  const entries = useMemo(() => data?.entries || [], [data?.entries]);
 
   const [selectedDay, setSelectedDay] = useState<any>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -39,41 +40,47 @@ export default function WeekView({ weekNumber, isCurrentWeek = false }: { weekNu
   const [learningsText, setLearningsText] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
-  // Re-calculate days based on fetched data
-  const days = Array.from({ length: 5 }, (_, i) => {
-    const date = addDays(weekStart, i);
-    const dayStart = startOfDay(date);
-    const today = startOfDay(new Date());
-    
-    const entry = entries.find((e: any) => isSameDay(new Date(e.date), date));
-    
-    // Check if it's a holiday
-    const isHoliday = checkIsNigerianHoliday(date);
-    const holidayInfo = isHoliday ? NIGERIAN_HOLIDAYS_SEED.find(h => isSameDay(startOfDay(new Date(h.date)), dayStart)) : null;
+  // Re-calculate days based on fetched data.
+  const days = useMemo(() => {
+    return Array.from({ length: 5 }, (_, i) => {
+      const date = addDays(weekStart, i);
+      const dayStart = startOfDay(date);
+      const today = startOfDay(new Date());
 
-    let status = "pending";
-    if (isHoliday) status = "holiday";
-    else if (entry) status = "logged";
-    else if (dayStart > today) status = "locked";
+      const entry = entries.find((e: any) => isSameDay(new Date(e.date), date));
 
-    return {
-      date,
-      name: format(date, "EEEE"),
-      formatted: format(date, "MMM d, yyyy"),
-      status,
-      holidayName: holidayInfo?.name || null,
-      entry,
-    };
-  });
+      const isHoliday = checkIsNigerianHoliday(date);
+      const holidayInfo = isHoliday ? NIGERIAN_HOLIDAYS_SEED.find(h => isSameDay(startOfDay(new Date(h.date)), dayStart)) : null;
 
-  // Set initial selected day once days are generated
+      let status = "pending";
+      if (isHoliday) status = "holiday";
+      else if (entry) status = "logged";
+      else if (dayStart > today) status = "locked";
+
+      return {
+        date,
+        name: format(date, "EEEE"),
+        formatted: format(date, "MMM d, yyyy"),
+        status,
+        holidayName: holidayInfo?.name || null,
+        entry,
+      };
+    });
+  }, [entries, weekStartTime]);
+
+  // Keep the selected day synced with the latest fetched entry data.
   useEffect(() => {
-    if (!selectedDay && days.length > 0) {
-      // Prefer today if in current week, else Monday
-      const todayDay = days.find(d => isSameDay(d.date, new Date()));
-      setSelectedDay(todayDay || days[0]);
-    }
-  }, [days, selectedDay]);
+    if (days.length === 0) return;
+
+    setSelectedDay((previous: any) => {
+      if (!previous) {
+        const todayDay = days.find(d => isSameDay(d.date, new Date()));
+        return todayDay || days[0];
+      }
+
+      return days.find(d => isSameDay(d.date, previous.date)) || days[0];
+    });
+  }, [days]);
 
   const handleOpenDrawer = () => {
     if (!selectedDay) return;
